@@ -29,7 +29,8 @@ absorbance = np.array(np_data["absorbance"])
 
 l = np.array(np_data["lambda"])  # from 400nm to 800nm
 l_bulk = np.array(bulk_data["lambda"]) # from 200nm to 900nm
-
+#%%
+# FUNCTION DEFINITIONS
 
 
 def Gamma(R): # [Hz]
@@ -41,13 +42,19 @@ def omega(l):  #[Hz]
 
 
 def epsilon1(l, R):
-    e1 = epsilon1_bulk[l-200]+wp**2 * (1/(omega(l)**2+Gamma_bulk**2)-1/(omega(l)**2+Gamma(R)**2))
-    return e1
+    try:
+        e1 = epsilon1_bulk[l-200]+wp**2 * (1/(omega(l)**2+Gamma_bulk**2)-1/(omega(l)**2+Gamma(R)**2))
+        return e1
+    except:
+        print("Invalid wavelength")
         
         
 def epsilon2(l, R):
-    e2 = epsilon2_bulk[l-200]-wp**2/omega(l) * (Gamma_bulk/(omega(l)**2+Gamma_bulk**2)-Gamma(R)/(omega(l)**2+Gamma(R)**2))
-    return e2
+    try:
+        e2 = epsilon2_bulk[l-200]-wp**2/omega(l) * (Gamma_bulk/(omega(l)**2+Gamma_bulk**2)-Gamma(R)/(omega(l)**2+Gamma(R)**2))
+        return e2
+    except:
+        print("Invalid wavelength")
     
     
 def Absorbance(l, R, epsilonm, rho): # rho = [nm**(-3)]
@@ -57,9 +64,14 @@ def Absorbance(l, R, epsilonm, rho): # rho = [nm**(-3)]
 def Absorbance_JC(l, epsilonm, f):
     return np.log10(np.e)*9*z*omega(l)/c*epsilonm**(3/2)*f*epsilon2_bulk[l-200]/((epsilon1_bulk[l-200]+2*epsilonm)**2+(epsilon2_bulk[l-200])**2)
 
+#%%
+# FITTING
 
+# syntax: (p0 is an appropriate initial guess)
+# par_fit, par_cov = curve_fit(function, xdata, ydata, p0=(1, 1, 1))
 
-# Plotting
+#%%
+# PLOTTING
 
 # plt.figure(figsize=(10, 6), dpi=100)
 # plt.plot(l_bulk, epsilon1_bulk, color="green", label=r"$\epsilon_1$")
@@ -69,16 +81,14 @@ def Absorbance_JC(l, epsilonm, f):
 # plt.ylabel(r"$\epsilon$", fontdict={"fontsize": 14})
 # plt.legend(fontsize=10, ncol=2)
 # plt.tight_layout()
-# plt.savefig("grafico.png", dpi=200)
 
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label=r"$\epsilon_1$")
-# plt.plot(l, Absorbance(l, R=10, epsilonm=2, rho=0.4*10**(-9)), color="red", label=r"$\epsilon_1$")  # just a qualitative check
-# plt.plot(l, Absorbance_JC(l, epsilonm=2, f=2*10**(-6)), color="blue", label=r"$\epsilon_1$") # just a qualitative check
+plt.plot(l, Absorbance(l, R=10, epsilonm=2, rho=0.4*10**(-9)), color="red", label=r"$\epsilon_1$")  # just a qualitative check
+plt.plot(l, Absorbance_JC(l, epsilonm=2, f=2*10**(-6)), color="blue", label=r"$\epsilon_1$") # just a qualitative check
 plt.title("Absorbance", fontdict={"fontname": "Calibri", "fontsize": 20})
 plt.xlabel(r"$\lambda$", fontdict={"fontsize": 14})
 plt.ylabel(r"$\epsilon$", fontdict={"fontsize": 14})
 plt.legend(fontsize=10, ncol=2)
 plt.tight_layout()
-plt.savefig("grafico.png", dpi=200)
 
