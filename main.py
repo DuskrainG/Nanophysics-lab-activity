@@ -2,19 +2,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
+from matplotlib import ticker
 
 
 # TODO(EASY):
     # fix units of measure, names, labels ... in graphs
-    # find more refined values for bulk constants (Ashcroft Mermin)
 # TODO(HARD):
     # Do all the chi-squared shenaningans for Absorbance
 
 wp = 1.37*10**16  #[Hz]
-vf = 1.4*10**15  #[nm/s]
-Gamma_bulk = 1.08*10**14  #[Hz]  #0.476
+vf = 1.40*10**15  #[nm/s]
+Gamma_bulk = 0.476*10**14  #[Hz] # from Ashcroft-Mermin (at 100°C)
 c = 299792458*10**9 # [nm/s]
 z = 10**7 # [nm]
+epsilonm_guess = 2
 
 bulk_data = pd.read_csv("bulk gold dieletric functions.txt", sep="\t", header=None)
 bulk_data.columns = ["lambda", "epsilon1", "epsilon2"]
@@ -24,7 +25,7 @@ epsilon2_bulk = np.array(bulk_data["epsilon2"]) # from 200nm to 900nm
 np_data = pd.read_csv("G01-NPs.dat", sep="\t", header=None)
 np_data.columns = ["lambda", "absorbance"]
 absorbance = np.array(np_data["absorbance"])
-absorbance_r = absorbance[50:201]  # _r variables are restricted to the selected fit region
+absorbance_r = absorbance[50:201]  # _r variables are restricted to the selected fit region # I've also tried [70:171]
 
 l = np.array(np_data["lambda"])  # from 400nm to 800nm
 l_bulk = np.array(bulk_data["lambda"]) # from 200nm to 900nm
@@ -64,6 +65,9 @@ def Absorbance_JC(l, epsilonm, f):
 def Chi(observed, expected):
     return ((observed-expected)**2/expected).sum()
 
+def Chi_R_rho(R, rho):
+    return Chi(absorbance_r, Absorbance(l_r, R, epsilonm_guess, rho))
+
 def multiwrite(outfile, string):
     outfile.write(string + "\n")
     print(string)
@@ -71,10 +75,10 @@ def multiwrite(outfile, string):
 #%%
 # FITTING: Johnson and Christy
 
-par_fit_JC, par_cov_JC = curve_fit(Absorbance_JC, l, absorbance, p0=(2, 2*10**-6))
+par_fit_JC, par_cov_JC = curve_fit(Absorbance_JC, l, absorbance, p0=(epsilonm_guess, 2*10**-6))
 Absorbance_JC_fitted = Absorbance_JC(l, epsilonm=par_fit_JC[0], f=par_fit_JC[1])
 
-par_fit_JC_r, par_cov_JC_r = curve_fit(Absorbance_JC, l_r, absorbance_r, p0=(2, 2*10**-6))
+par_fit_JC_r, par_cov_JC_r = curve_fit(Absorbance_JC, l_r, absorbance_r, p0=(epsilonm_guess, 2*10**-6))
 Absorbance_JC_fitted_r = Absorbance_JC(l, epsilonm=par_fit_JC_r[0], f=par_fit_JC_r[1])
 
 with open("outputfile.txt", "w") as outfile:
@@ -95,7 +99,7 @@ with open("outputfile.txt", "w") as outfile:
 
 # Initial 3 parameter fit: this can give the initial guess for the more refined fit later, but results are not totally realiable
 # Indeed rho*R**3 is constant, so the dependency on R and rho is very weak and there probably are a lot of local minima
-par_fit, par_cov = curve_fit(Absorbance, l_r, absorbance_r, p0=(10, 2, 3*10**-9))
+par_fit, par_cov = curve_fit(Absorbance, l_r, absorbance_r, p0=(10, epsilonm_guess, 3*10**-9))
 Absorbance_fitted = Absorbance(l, R=par_fit[0], epsilonm=par_fit[1], rho=par_fit[2])
 
 with open("outputfile.txt", "a") as outfile:
@@ -105,6 +109,36 @@ with open("outputfile.txt", "a") as outfile:
     multiwrite(outfile, "rho = " + str(par_fit[2]) + " nm**-3, with error " + str(np.sqrt(par_cov[2,2])) + "nm**-3")
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted)))
     multiwrite(outfile, "")
+
+#%%
+# FITTING: Chi squared maps
+
+R_domain = np.arange(2, 15, 0.1)
+rho_domain = np.arange(1*10**-10, 15*10**-9, 10**-10)
+
+Chi_R_rho_values = np.zeros((len(R_domain), len(rho_domain)))
+        
+for i in range(R_domain.shape[0]):
+    for j in range(rho_domain.shape[0]):
+        Chi_R_rho_values[i, j] = Chi_R_rho(R_domain[i], rho_domain[j])
+
+
+plt.figure(figsize=(10, 6), dpi=100)
+contour_plot = plt.contourf(R_domain, rho_domain, Chi_R_rho_values.transpose(),
+                            np.logspace(np.log10(Chi_R_rho_values.min()), np.log10(Chi_R_rho_values.max()), 20), locator=ticker.LogLocator(), cmap="plasma")
+plt.colorbar(label=r"$\chi^2$")
+plt.title("Title", fontdict={"fontname": "Calibri", "fontsize": 20})
+plt.xlabel(r"$\lambda$", fontdict={"fontsize": 14})
+plt.ylabel(r"$\epsilon$", fontdict={"fontsize": 14})
+plt.tight_layout()
+
+# One should continue from here, but I might kill myself before coming to a completion, so I'll stop here
+#TODO:
+    # actually do a fit fixing epsilonm and find (R, rho) pair
+    # use the rho found to do the chi squared thing with the (R, epsilonm) pair
+    # also do the (R, epsilonm) fit
+    # ???
+    # profit
 
 #%%
 # PLOTTING
