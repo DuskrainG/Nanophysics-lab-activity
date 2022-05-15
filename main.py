@@ -202,13 +202,13 @@ plt.tight_layout()
 # plt.tight_layout()
 
 # Size dependent plots
-# plt.figure(figsize=(10, 6), dpi=100)
-# plt.plot(l, absorbance, color="green", label=r"$\epsilon_1$")
-# plt.plot(l, Absorbance_fitted, color="blue", label=r"$\epsilon_1$")
-# plt.title("Absorbance", fontdict={"fontname": "Calibri", "fontsize": 20})
-# plt.xlabel(r"$\lambda$", fontdict={"fontsize": 14})
-# plt.ylabel(r"$\epsilon$", fontdict={"fontsize": 14})
-# plt.legend(fontsize=10, ncol=2)
-# plt.tight_layout()
+plt.figure(figsize=(10, 6), dpi=100)
+plt.plot(l, absorbance, color="green", label=r"$\epsilon_1$")
+plt.plot(l, Absorbance_fitted, color="blue", label=r"$\epsilon_1$")
+plt.title("Absorbance", fontdict={"fontname": "Calibri", "fontsize": 20})
+plt.xlabel(r"$\lambda$", fontdict={"fontsize": 14})
+plt.ylabel(r"$\epsilon$", fontdict={"fontsize": 14})
+plt.legend(fontsize=10, ncol=2, loc="upper right")
+plt.tight_layout()
 
 
