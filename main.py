@@ -4,7 +4,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from matplotlib import ticker
 
-
+# skgo
 # TODO(EASY):
     # fix units of measure, names, labels ... in graphs
 # TODO(MEDIUM):
