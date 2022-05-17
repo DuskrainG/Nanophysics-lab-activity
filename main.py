@@ -66,6 +66,12 @@ def epsilon2(l, R):
 def Absorbance(l, R, epsilonm, rho): # rho = [nm**(-3)]
     return np.log10(np.e)*9*z*omega(l)/c*epsilonm**(3/2)*4/3*np.pi*R**3*rho*epsilon2(l, R)/((epsilon1(l, R)+2*epsilonm)**2+(epsilon2(l, R))**2)
 
+def Absorbance_f(l, R, epsilonm, f):
+    return np.log10(np.e)*9*z*omega(l)/c*epsilonm**(3/2)*f*epsilon2(l, R)/((epsilon1(l, R)+2*epsilonm)**2+(epsilon2(l, R))**2)
+
+def Absorbance_R_rho(l, R, rho):
+    return Absorbance(l, R, epsilonm_fit, rho)
+
 def Absorbance_JC(l, epsilonm, f):
     l=l.astype(int)-200
     return np.log10(np.e)*9*z*omega(l)/c*epsilonm**(3/2)*f*epsilon2_bulk[l]/((epsilon1_bulk[l]+2*epsilonm)**2+(epsilon2_bulk[l])**2)
@@ -120,6 +126,9 @@ with open("outputfile.txt", "a") as outfile:
     multiwrite(outfile, "rho = " + str(par_fit[2]) + " nm**-3, with error " + str(np.sqrt(par_cov[2,2])) + "nm**-3")
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted)))
     multiwrite(outfile, "")
+    
+par_fit, par_cov = curve_fit(Absorbance, l_r, absorbance_r, p0=(10, epsilonm_guess, 3*10**-9))
+Absorbance_fitted = Absorbance(l, R=par_fit[0], epsilonm=par_fit[1], rho=par_fit[2])
 
 
 #%% FITTING: size dependent, double fits
