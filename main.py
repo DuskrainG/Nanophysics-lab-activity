@@ -48,17 +48,17 @@ def omega(l):  #[Hz]
     return 2*np.pi*c/l
 
 def epsilon1(l, R):
-    l=l.astype(int)-200
+    l_index=l.astype(int)-200
     try:
-        e1 = epsilon1_bulk[l]+wp**2 * (1/(omega(l)**2+Gamma_bulk**2)-1/(omega(l)**2+Gamma(R)**2))
+        e1 = epsilon1_bulk[l_index]+wp**2 * (1/(omega(l)**2+Gamma_bulk**2)-1/(omega(l)**2+Gamma(R)**2))
         return e1
     except:
         print("Invalid wavelength")
           
 def epsilon2(l, R):
-    l=l.astype(int)-200
+    l_index=l.astype(int)-200
     try:
-        e2 = epsilon2_bulk[l]-wp**2/omega(l) * (Gamma_bulk/(omega(l)**2+Gamma_bulk**2)-Gamma(R)/(omega(l)**2+Gamma(R)**2))
+        e2 = epsilon2_bulk[l_index]-wp**2/omega(l) * (Gamma_bulk/(omega(l)**2+Gamma_bulk**2)-Gamma(R)/(omega(l)**2+Gamma(R)**2))
         return e2
     except:
         print("Invalid wavelength")
