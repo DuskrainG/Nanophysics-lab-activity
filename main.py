@@ -4,14 +4,6 @@ import numpy as np
 from scipy.optimize import curve_fit
 from matplotlib import ticker
 
-# skgo
-# TODO(EASY):
-    # fix units of measure, names, labels ... in graphs
-# TODO(MEDIUM):
-    # double fits
-# TODO(HARD):
-    # NOTHING, I already took care of the clusterfuck for Chi-squared maps
-
 wp = 1.37*10**16  #[Hz]
 vf = 1.40*10**15  #[nm/s]
 Gamma_bulk = 0.476*10**14  #[Hz] # from Ashcroft-Mermin (at 100°C)
