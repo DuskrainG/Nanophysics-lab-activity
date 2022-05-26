@@ -33,6 +33,9 @@ def beta_size(beta_obs):
 def Scherrer(theta, beta):
     return K*l/(beta*np.cos(theta))
 
+def Weighted_Average(array, weights):
+    return (np.array(array)*np.array(weights)).sum()/(np.array(weights).sum())
+
 #%%
 # DATA
 fs = 20 # standardize the fontsize
@@ -197,20 +200,30 @@ with open("outputfile2.txt", "w") as outfile:
 #%%
 # LATTICE CONSTANT AND PARTICLE SIZE
 d_fit = d(m_fit)
-a = np.zeros(5)
-a[0] = lattice_constant(d_fit[0], 1, 1, 1)
-a[1] = lattice_constant(d_fit[1], 2, 0, 0)
-a[2] = lattice_constant(d_fit[2], 2, 2, 0)
-a[3] = lattice_constant(d_fit[3], 3, 1, 1)
-a[4] = lattice_constant(d_fit[4], 2, 2, 2)
-a_med = np.average(a)
+latt = np.zeros(5)
+latt[0] = lattice_constant(d_fit[0], 1, 1, 1)
+latt[1] = lattice_constant(d_fit[1], 2, 0, 0)
+latt[2] = lattice_constant(d_fit[2], 2, 2, 0)
+latt[3] = lattice_constant(d_fit[3], 3, 1, 1)
+latt[4] = lattice_constant(d_fit[4], 2, 2, 2)
+latt_av = np.average(latt)
+latt_w_av = Weighted_Average(latt, A_fit)
 
 beta = []
 for i in range(len(FWHM)):
     beta = beta_size(FWHM[i])
 R_v = Scherrer(m_fit, beta)/2  # volume weighted radius
-R_v_med = np.average(R_v)
+R_v_av = np.average(R_v)
+R_v_w_av = Weighted_Average(R_v, A_fit)
 
+with open("outputfile2.txt", "a") as outfile:
+    multiwrite(outfile, "lattice constant = " + str(latt) + " with errors " + str("TODO"))
+    multiwrite(outfile, "lattice constant average = " + str(latt_av) + " with errors " + str("TODO"))
+    multiwrite(outfile, "lattice constant weighted average= " + str(latt_w_av) + " with errors " + str("TODO"))
+    multiwrite(outfile, "volumic radius = " + str(R_v) + " with errors " + str("TODO"))
+    multiwrite(outfile, "volumic radius average = " + str(R_v_av) + " with errors " + str("TODO"))
+    multiwrite(outfile, "volumic radius weighted average = " + str(R_v_w_av) + " with errors " + str("TODO"))
+    multiwrite(outfile, "")
 
 # TODO:
 # error propagation on d from m and on a from d and from a to a_med to obtain final error on a_med; define functions!

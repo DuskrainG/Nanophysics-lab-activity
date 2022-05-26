@@ -19,6 +19,7 @@ f_guess = 2*10**-6
 epsilonm_fit = epsilonm_guess
 rho_fit = rho_guess
 R_fit = R_guess
+e_guess = 0.9 # to get from ImageJ
 
 bulk_data = pd.read_csv("bulk gold dieletric functions.txt", sep="\t", header=None)
 bulk_data.columns = ["lambda", "epsilon1", "epsilon2"]
@@ -89,6 +90,27 @@ def Chi_R_rho(R, rho):
 
 def Chi_R_epsilonm(R, epsilonm): # only accounts for the chi squared in the selected fit range
     return Chi(absorbance_r, Absorbance(l_r, R, epsilonm, rho_fit))
+
+def Gans_prolate(e): # prolate dipolarization factor
+    return (1-e**2)/e**2 * (1/(2*e)*np.log((1+e)/(1-e))-1)
+
+def Gans_cs_prolate_f(l, R, epsilonm, f, L1): # cross section already multiplied by rho for simplicity
+    c1 = epsilon2(l, R)/(L1**2*(epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2)
+    L2 = (1-L1)/2
+    c2 = epsilon2(l, R)/(L2**2*(epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2)
+    return 1/3*omega(l)/c*epsilonm**(3/2)*f*(c1 + 2*c2)
+
+def Gans_cs_prolate_f_L1_fixed(l, R, epsilonm, f):
+    L1 = Gans_prolate(e_guess)
+    return Gans_cs_prolate_f(l, R, epsilonm, f, L1)
+
+def Gans_absorbance_prolate(l, R, epsilonm, f, L1):
+    cs = Gans_cs_prolate_f(l, R, epsilonm, f, L1)
+    return np.log10(np.e)*z*cs
+
+def Gans_absorbance_prolate_L1_fixed(l, R, epsilonm, f):
+    L1 = Gans_prolate(e_guess)
+    return Gans_absorbance_prolate(l, R, epsilonm, f, L1)
 
 def multiwrite(outfile, string):
     outfile.write(string + "\n")
@@ -317,3 +339,20 @@ plt.ylabel("Absorbance", fontdict={"fontsize": fs})
 plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
+
+#%%
+# GANS THEORY
+f_fit = rho_fit * 4/3 * np.pi * R_fit**3
+bounds = ([0, 1, 1*10**(-7)], [20, 3, 1*10**(-5)])
+par_fit_Gans, par_cov_Gans = curve_fit(Gans_absorbance_prolate_L1_fixed, l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit), bounds = bounds)
+Absorbance_fitted_Gans = Gans_absorbance_prolate_L1_fixed(l, R=par_fit_Gans[0], epsilonm=par_fit_Gans[1], f=par_fit_Gans[2])
+
+with open("outputfile.txt", "a") as outfile:
+    multiwrite(outfile, "Gans fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "R = " + str(par_fit_Gans[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans[0,0])) + " nm")
+    multiwrite(outfile, "epsilonm = " + str(par_fit_Gans[1]) + "with error " + str(np.sqrt(par_cov_Gans[1,1])))
+    multiwrite(outfile, "f = " + str(par_fit_Gans[2]) + "with error " + str(np.sqrt(par_cov_Gans[2,2])))
+    multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_Gans)))
+    multiwrite(outfile, "")
+    
+# TODO: GANS THEORY NOT WORKING
