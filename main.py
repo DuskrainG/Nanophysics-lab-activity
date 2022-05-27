@@ -19,7 +19,7 @@ f_guess = 2*10**-6
 epsilonm_fit = epsilonm_guess
 rho_fit = rho_guess
 R_fit = R_guess
-e_guess = 0.9 # to get from ImageJ
+e_guess = 0.001 # to get from ImageJ
 
 bulk_data = pd.read_csv("bulk gold dieletric functions.txt", sep="\t", header=None)
 bulk_data.columns = ["lambda", "epsilon1", "epsilon2"]
@@ -45,7 +45,11 @@ def omega(l):  #[Hz]
     return 2*np.pi*c/l
 
 def epsilon1(l, R):
-    l_index=l.astype(int)-200
+    l_index = l.astype(int)-200
+    # try:
+    #     l_index = [int(i) for i in l]
+    # except:
+    #     l_index = int(l)-200
     try:
         e1 = epsilon1_bulk[l_index]+wp**2 * (1/(omega(l)**2+Gamma_bulk**2)-1/(omega(l)**2+Gamma(R)**2))
         return e1
@@ -53,7 +57,11 @@ def epsilon1(l, R):
         print("Invalid wavelength")
           
 def epsilon2(l, R):
-    l_index=l.astype(int)-200
+    l_index = l.astype(int)-200
+    # try:
+    #     l_index = [int(i) for i in l]
+    # except:
+    #     l_index = int(l)-200
     try:
         e2 = epsilon2_bulk[l_index]-wp**2/omega(l) * (Gamma_bulk/(omega(l)**2+Gamma_bulk**2)-Gamma(R)/(omega(l)**2+Gamma(R)**2))
         return e2
@@ -94,23 +102,27 @@ def Chi_R_epsilonm(R, epsilonm): # only accounts for the chi squared in the sele
 def Gans_prolate(e): # prolate dipolarization factor
     return (1-e**2)/e**2 * (1/(2*e)*np.log((1+e)/(1-e))-1)
 
-def Gans_cs_prolate_f(l, R, epsilonm, f, L1): # cross section already multiplied by rho for simplicity
-    c1 = epsilon2(l, R)/(L1**2*(epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2)
+def Gans_ec_prolate_f(l, R, epsilonm, f, L1): # extinction coefficient [nm**-1]
+    c1 = epsilon2(l, R)/(L1**2* (epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2)
     L2 = (1-L1)/2
     c2 = epsilon2(l, R)/(L2**2*(epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2)
     return 1/3*omega(l)/c*epsilonm**(3/2)*f*(c1 + 2*c2)
 
-def Gans_cs_prolate_f_L1_fixed(l, R, epsilonm, f):
+def Gans_ec_prolate_f_L1_fixed(l, R, epsilonm, f):
     L1 = Gans_prolate(e_guess)
-    return Gans_cs_prolate_f(l, R, epsilonm, f, L1)
+    return Gans_ec_prolate_f(l, R, epsilonm, f, L1)
 
 def Gans_absorbance_prolate(l, R, epsilonm, f, L1):
-    cs = Gans_cs_prolate_f(l, R, epsilonm, f, L1)
-    return np.log10(np.e)*z*cs
+    ec = Gans_ec_prolate_f(l, R, epsilonm, f, L1)
+    return np.log10(np.e)*z*ec
 
 def Gans_absorbance_prolate_L1_fixed(l, R, epsilonm, f):
     L1 = Gans_prolate(e_guess)
     return Gans_absorbance_prolate(l, R, epsilonm, f, L1)
+
+def Gans_absorbance_prolate_f_fixed(l, R, epsilonm, e):
+    L1 = Gans_prolate(e)
+    return Gans_absorbance_prolate(l, R, epsilonm, f_fit, L1)
 
 def multiwrite(outfile, string):
     outfile.write(string + "\n")
@@ -141,10 +153,23 @@ with open("outputfile.txt", "w") as outfile:
 #%%
 # PLOTTING
 
+epsilon1_2 = epsilon1(l, R=2)
+epsilon1_5 = epsilon1(l, R=5)
+epsilon1_10 = epsilon1(l, R=10)
+epsilon2_2 = epsilon2(l, R=2)
+epsilon2_5 = epsilon2(l, R=5)
+epsilon2_10 = epsilon2(l, R=10)
+
 # Bulk gold dielectric functions
 plt.figure(figsize=(10, 6), dpi=100)
-plt.plot(l_bulk, epsilon1_bulk, color="green", label=r"$\epsilon_1$")
-plt.plot(l_bulk, epsilon2_bulk, color="red", label=r"$\epsilon_2$")
+plt.plot(l_bulk, epsilon1_bulk, label=r"$\epsilon_1$")
+plt.plot(l_bulk, epsilon2_bulk, label=r"$\epsilon_2$")
+plt.plot(l, epsilon1_2, label=r"$\epsilon_1(R=2nm)$")
+plt.plot(l, epsilon1_5, label=r"$\epsilon_1(R=5nm)$")
+plt.plot(l, epsilon1_10, label=r"$\epsilon_1(R=10nm)$")
+plt.plot(l, epsilon2_2, label=r"$\epsilon_2(R=2nm)$")
+plt.plot(l, epsilon2_5, label=r"$\epsilon_2(R=5nm)$")
+plt.plot(l, epsilon2_10, label=r"$\epsilon_2(R=10nm)$")
 plt.title("Bulk gold dielectric functions", fontdict={"fontname": "Calibri", "fontsize": fs})
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
@@ -225,12 +250,16 @@ with open("outputfile.txt", "a") as outfile:
 par_fit_epsilonmfixfit, par_cov_epsilonmfixfit = curve_fit(Absorbance_epsilonmfixfit, l_r, absorbance_r, p0=(R_guess, rho_guess))
 Absorbance_fitted_epsilonmfixfit = Absorbance_epsilonmfixfit(l, R=par_fit_epsilonmfixfit[0], rho=par_fit_epsilonmfixfit[1])
 
+R_fit = par_fit_epsilonmfixfit[0]
+rho_fit = par_fit_epsilonmfixfit[1]
+
 with open("outputfile.txt", "a") as outfile:
     multiwrite(outfile, "Fit restricted to 470nm-570nm:")
-    multiwrite(outfile, "R = " + str(par_fit_epsilonmfixfit[0]) + " nm, with error " + str(np.sqrt(par_cov_epsilonmfixfit[0,0])) + " nm")
-    multiwrite(outfile, "rho = " + str(par_fit_epsilonmfixfit[1]) + " nm**-3, with error " + str(np.sqrt(par_cov_epsilonmfixfit[1,1])) + " nm**-3")
+    multiwrite(outfile, "R = " + str(R_fit) + " nm, with error " + str(np.sqrt(par_cov_epsilonmfixfit[0,0])) + " nm")
+    multiwrite(outfile, "rho = " + str(rho_fit) + " nm**-3, with error " + str(np.sqrt(par_cov_epsilonmfixfit[1,1])) + " nm**-3")
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_epsilonmfixfit)))
     multiwrite(outfile, "")
+    
 
 # using f as a parameter
 par_fit_f_epsilonmfix, par_cov_f_epsilonmfix = curve_fit(Absorbance_f_epsilonmfix, l_r, absorbance_r, p0=(R_guess, f_guess))
@@ -343,16 +372,89 @@ plt.tight_layout()
 #%%
 # GANS THEORY
 f_fit = rho_fit * 4/3 * np.pi * R_fit**3
-bounds = ([0, 1, 1*10**(-7)], [20, 3, 1*10**(-5)])
-par_fit_Gans, par_cov_Gans = curve_fit(Gans_absorbance_prolate_L1_fixed, l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit), bounds = bounds)
-Absorbance_fitted_Gans = Gans_absorbance_prolate_L1_fixed(l, R=par_fit_Gans[0], epsilonm=par_fit_Gans[1], f=par_fit_Gans[2])
+
+bounds_ = ([0, 1, 1*10**(-7), 0], [np.inf, np.inf, 1*10**(-5), 1])
+par_fit_Gans_, par_cov_Gans_ = curve_fit(Gans_absorbance_prolate,
+    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit, 1/3), bounds = bounds_, maxfev=5000)
+Absorbance_fitted_Gans_ = Gans_absorbance_prolate(l,
+    R=par_fit_Gans_[0], epsilonm=par_fit_Gans_[1], f=par_fit_Gans_[2], L1=par_fit_Gans_[3])
 
 with open("outputfile.txt", "a") as outfile:
     multiwrite(outfile, "Gans fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "R = " + str(par_fit_Gans_[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans_[0,0])) + " nm")
+    multiwrite(outfile, "epsilonm = " + str(par_fit_Gans_[1]) + "with error " + str(np.sqrt(par_cov_Gans_[1,1])))
+    multiwrite(outfile, "f = " + str(par_fit_Gans_[2]) + "with error " + str(np.sqrt(par_cov_Gans_[2,2])))
+    multiwrite(outfile, "e = " + str(par_fit_Gans_[3]) + "with error " + str(np.sqrt(par_cov_Gans_[3,3])))
+    multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_Gans_)))
+    multiwrite(outfile, "")
+    
+plt.figure(figsize=(10, 6), dpi=100)
+plt.plot(l, absorbance, color="green", label="Experimental data")
+plt.plot(l, Absorbance_fitted_Gans_, color="blue", label="Gans theory fit")
+plt.title("Absorbance vs $\lambda$: Gans theory", fontsize=fs+5)
+plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
+plt.xticks(fontsize=fs)
+plt.ylabel("Absorbance", fontdict={"fontsize": fs})
+plt.yticks(fontsize=fs)
+plt.legend(fontsize=fs//4*3)
+plt.tight_layout()
+
+
+'''
+# Attempts at fixing some of the variables; does not help
+# The problem is that the curve is very well fitted by bulk values for the dielectric function
+# Thus we can not infer the value of R, which is the one we're most interested in
+# The only saving grace is that the ellipticity values are extremely small
+# So we might say that Gans theory is not necessary and keep using our previous results
+
+bounds = ([0, 1, 1*10**(-7)], [20, 3, 1*10**(-5)])
+par_fit_Gans, par_cov_Gans = curve_fit(Gans_absorbance_prolate_L1_fixed,
+    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit), bounds = bounds, maxfev=5000)
+Absorbance_fitted_Gans = Gans_absorbance_prolate_L1_fixed(l,
+    R=par_fit_Gans[0], epsilonm=par_fit_Gans[1], f=par_fit_Gans[2])
+
+with open("outputfile.txt", "a") as outfile:
+    multiwrite(outfile, "Gans fit restricted to 470nm-570nm, e fixed:")
     multiwrite(outfile, "R = " + str(par_fit_Gans[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans[0,0])) + " nm")
     multiwrite(outfile, "epsilonm = " + str(par_fit_Gans[1]) + "with error " + str(np.sqrt(par_cov_Gans[1,1])))
     multiwrite(outfile, "f = " + str(par_fit_Gans[2]) + "with error " + str(np.sqrt(par_cov_Gans[2,2])))
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_Gans)))
     multiwrite(outfile, "")
     
-# TODO: GANS THEORY NOT WORKING
+plt.figure(figsize=(10, 6), dpi=100)
+plt.plot(l, absorbance, color="green", label="Experimental data")
+plt.plot(l, Absorbance_fitted_Gans, color="blue", label="Gans theory fit")
+plt.title("Absorbance vs $\lambda$: Gans theory, e fixed", fontsize=fs+5)
+plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
+plt.xticks(fontsize=fs)
+plt.ylabel("Absorbance", fontdict={"fontsize": fs})
+plt.yticks(fontsize=fs)
+plt.legend(fontsize=fs//4*3)
+plt.tight_layout()
+
+
+bounds_f = ([0, 1, 0], [20, 3, 1])
+par_fit_Gans_f, par_cov_Gans_f = curve_fit(Gans_absorbance_prolate_f_fixed,
+    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, e_guess), bounds = bounds_f, maxfev=5000)
+Absorbance_fitted_Gans_f = Gans_absorbance_prolate_f_fixed(l,
+    R=par_fit_Gans_f[0], epsilonm=par_fit_Gans_f[1], e=par_fit_Gans_f[2])
+
+with open("outputfile.txt", "a") as outfile:
+    multiwrite(outfile, "Gans fit restricted to 470nm-570nm, f fixed:")
+    multiwrite(outfile, "R = " + str(par_fit_Gans_f[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans_f[0,0])) + " nm")
+    multiwrite(outfile, "epsilonm = " + str(par_fit_Gans_f[1]) + "with error " + str(np.sqrt(par_cov_Gans_f[1,1])))
+    multiwrite(outfile, "e = " + str(par_fit_Gans_f[2]) + "with error " + str(np.sqrt(par_cov_Gans_f[2,2])))
+    multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_Gans_f)))
+    multiwrite(outfile, "")
+    
+plt.figure(figsize=(10, 6), dpi=100)
+plt.plot(l, absorbance, color="green", label="Experimental data")
+plt.plot(l, Absorbance_fitted_Gans_f, color="blue", label="Gans theory fit")
+plt.title("Absorbance vs $\lambda$: Gans theory, f fixed", fontsize=fs+5)
+plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
+plt.xticks(fontsize=fs)
+plt.ylabel("Absorbance", fontdict={"fontsize": fs})
+plt.yticks(fontsize=fs)
+plt.legend(fontsize=fs//4*3)
+plt.tight_layout()
+'''
