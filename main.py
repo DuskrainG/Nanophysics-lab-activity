@@ -94,7 +94,7 @@ def Chi(observed, expected):
     return ((observed-expected)**2/expected).sum()
 
 def Chi_R_rho(R, rho):
-    return Chi(absorbance_r, Absorbance(l_r, R, epsilonm_guess, rho))
+    return Chi(absorbance_r, Absorbance(l_r, R, epsilonm_fit, rho))
 
 def Chi_R_epsilonm(R, epsilonm): # only accounts for the chi squared in the selected fit range
     return Chi(absorbance_r, Absorbance(l_r, R, epsilonm, rho_fit))
@@ -123,6 +123,12 @@ def Gans_absorbance_prolate_L1_fixed(l, R, epsilonm, f):
 def Gans_absorbance_prolate_f_fixed(l, R, epsilonm, e):
     L1 = Gans_prolate(e)
     return Gans_absorbance_prolate(l, R, epsilonm, f_fit, L1)
+
+def Chi_Gans(R, epsilonm, f, L1):
+    return Chi(absorbance_r, Gans_absorbance_prolate(l_r, R, epsilonm, f, L1))
+
+def Chi_Gans_L1_fixed(R, epsilonm, f):
+    return Chi(absorbance_r, Gans_absorbance_prolate_L1_fixed(l_r, R, epsilonm, f))
 
 def multiwrite(outfile, string):
     outfile.write(string + "\n")
@@ -229,7 +235,7 @@ par_fit_epsilonmfix, par_cov_epsilonmfix = curve_fit(Absorbance_epsilonmfix, l_r
 Absorbance_fitted_epsilonmfix = Absorbance_epsilonmfix(l, R=par_fit_epsilonmfix[0], rho=par_fit_epsilonmfix[1])
 
 with open("outputfile.txt", "a") as outfile:
-    multiwrite(outfile, "Fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "Fit restricted to 470nm-570nm: R, rho; first try")
     multiwrite(outfile, "R = " + str(par_fit_epsilonmfix[0]) + " nm, with error " + str(np.sqrt(par_cov_epsilonmfix[0,0])) + " nm")
     multiwrite(outfile, "rho = " + str(par_fit_epsilonmfix[1]) + " nm**-3, with error " + str(np.sqrt(par_cov_epsilonmfix[1,1])) + " nm**-3")
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_epsilonmfix)))
@@ -240,7 +246,7 @@ par_fit_rhofix, par_cov_rhofix = curve_fit(Absorbance_rhofix, l_r, absorbance_r,
 Absorbance_fitted_rhofix = Absorbance_rhofix(l, R=par_fit_rhofix[0], epsilonm=par_fit_rhofix[1])
 
 with open("outputfile.txt", "a") as outfile:
-    multiwrite(outfile, "Fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "Fit restricted to 470nm-570nm: R, epsilonm")
     multiwrite(outfile, "R = " + str(par_fit_rhofix[0]) + " nm, with error " + str(np.sqrt(par_cov_rhofix[0,0])) + " nm")
     multiwrite(outfile, "epsilonm = " + str(par_fit_rhofix[1]) + " with error " + str(np.sqrt(par_cov_rhofix[1,1])))
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_rhofix)))
@@ -254,7 +260,7 @@ R_fit = par_fit_epsilonmfixfit[0]
 rho_fit = par_fit_epsilonmfixfit[1]
 
 with open("outputfile.txt", "a") as outfile:
-    multiwrite(outfile, "Fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "Fit restricted to 470nm-570nm: R, rho; second try")
     multiwrite(outfile, "R = " + str(R_fit) + " nm, with error " + str(np.sqrt(par_cov_epsilonmfixfit[0,0])) + " nm")
     multiwrite(outfile, "rho = " + str(rho_fit) + " nm**-3, with error " + str(np.sqrt(par_cov_epsilonmfixfit[1,1])) + " nm**-3")
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_epsilonmfixfit)))
@@ -266,7 +272,7 @@ par_fit_f_epsilonmfix, par_cov_f_epsilonmfix = curve_fit(Absorbance_f_epsilonmfi
 Absorbance_fitted_f_epsilonmfix = Absorbance_f_epsilonmfix(l, R=par_fit_f_epsilonmfix[0], f=par_fit_f_epsilonmfix[1])
 
 with open("outputfile.txt", "a") as outfile:
-    multiwrite(outfile, "Fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "Fit restricted to 470nm-570nm: R, f")
     multiwrite(outfile, "R = " + str(par_fit_f_epsilonmfix[0]) + " nm, with error " + str(np.sqrt(par_cov_f_epsilonmfix[0,0])) + " nm")
     multiwrite(outfile, "f = " + str(par_fit_f_epsilonmfix[1]) + " with error " + str(np.sqrt(par_cov_f_epsilonmfix[1,1])))
     multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_f_epsilonmfix)))
@@ -278,7 +284,7 @@ with open("outputfile.txt", "a") as outfile:
 R_domain_1 = np.arange(2, 15, 0.1)
 rho_domain = np.arange(1*10**-10, 15*10**-9, 10**-10)
 epsilonm_domain = np.arange(1.4, 3, 0.01)
-R_domain_2 = np.arange(3, 7, 0.1)
+R_domain_2 = np.arange(2, 7, 0.1)
 
 Chi_R_rho_values = np.zeros((len(R_domain_1), len(rho_domain)))    
 for i in range(len(R_domain_1)):
@@ -299,6 +305,10 @@ plt.yticks(fontsize=fs)
 t = ax.yaxis.get_offset_text()
 t.set_size(fs)
 plt.tight_layout()
+
+argmin_R_rho = np.argwhere(Chi_R_rho_values == Chi_R_rho_values.min())[0]
+R_min = R_domain_1[argmin_R_rho[0]]
+rho_min = rho_domain[argmin_R_rho[1]]
 
 
 Chi_R_epsilonm_values = np.zeros((len(R_domain_2), len(epsilonm_domain)))
@@ -322,6 +332,17 @@ t = ax.yaxis.get_offset_text()
 t.set_size(fs)
 plt.tight_layout()
 
+argmin_R_epsilonm = np.argwhere(Chi_R_epsilonm_values == Chi_R_epsilonm_values.min())[0]
+R_min_2 = R_domain_2[argmin_R_epsilonm[0]]
+epsilonm_min = epsilonm_domain[argmin_R_epsilonm[1]]
+
+with open("outputfile.txt", "a") as outfile:
+    multiwrite(outfile, "Minimum of chi squared (coarse sample)")
+    multiwrite(outfile, "fit1, R = " + str(R_min) + " nm")
+    multiwrite(outfile, "fit1, rho = " + str(rho_min) + " nm**-3")
+    multiwrite(outfile, "fit2, R = " + str(R_min_2) + " nm")
+    multiwrite(outfile, "fit2, epsilonm = " + str(epsilonm_min))
+    multiwrite(outfile, "")
 #%%
 # PLOTTING: size dependent, double fits
 
@@ -399,8 +420,48 @@ plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
 
+# Manual fit by definition and optimization of a proper chi squared
 
+R_domain_Gans = np.arange(2, 15, 0.2)
+epsilonm_domain_Gans = np.arange(1.4, 3, 0.05)
+f_domain_Gans = np.arange(1*10**-7, 5*10**-6, 5*10**-7)
+
+Chi_Gans_values = np.zeros((len(R_domain_Gans), len(epsilonm_domain_Gans),
+                     len(f_domain_Gans)))    
+for i in range(len(R_domain_Gans)):
+    for j in range(len(epsilonm_domain_Gans)):
+        for k in range(len(f_domain_Gans)):
+                Chi_Gans_values[i, j, k] = Chi_Gans_L1_fixed(R_domain_Gans[i],
+                                                       epsilonm_domain_Gans[j], f_domain_Gans[k])
+
+
+argmin_Gans = np.argwhere(Chi_Gans_values == Chi_Gans_values.min())[0]
+R_Gans = R_domain_Gans[argmin_Gans[0]]
+epsilonm_Gans = epsilonm_domain_Gans[argmin_Gans[1]]
+f_Gans = f_domain_Gans[argmin_Gans[2]]
+
+# It turns out that the results are the same as with the simple fit
+# On one side this is reassuring, on the other results remain to be bad
+
+#%%
 '''
+# 4 dimensional chi squared map: being 4d, to obtain a decent resolution a lot of time is needed
+Chi_Gans_values = np.zeros((len(R_domain_Gans), len(epsilonm_domain_Gans),
+                     len(f_domain_Gans), len(L1_domain_Gans)))    
+for i in range(len(R_domain_Gans)):
+    for j in range(len(epsilonm_domain_Gans)):
+        for k in range(len(f_domain_Gans)):
+            for h in range(len(L1_domain_Gans)):
+                Chi_Gans_values[i, j, k ,h] = Chi_Gans(R_domain_Gans[i], epsilonm_domain_Gans[j],
+                                                       f_domain_Gans[k], L1_domain_Gans[h])
+
+
+argmin_Gans = np.argwhere(Chi_Gans_values == Chi_Gans_values.min())[0]
+R_Gans = R_domain_Gans[argmin_Gans[0]]
+epsilonm_Gans = epsilonm_domain_Gans[argmin_Gans[1]]
+f_Gans = f_domain_Gans[argmin_Gans[2]]
+L1_Gans = L1_domain_Gans[argmin_Gans[3]]
+
 # Attempts at fixing some of the variables; does not help
 # The problem is that the curve is very well fitted by bulk values for the dielectric function
 # Thus we can not infer the value of R, which is the one we're most interested in
@@ -458,3 +519,50 @@ plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
 '''
+
+#%%
+
+# TODO: understand why this gives me R = 6.6nm
+
+def cross_section_rho(x,a,b,bool_lim=False):  # a = R, b=rho
+    omega = 2 * np.pi * c / x
+    epsm = 1.33**2#1.43*1.43 #1.33*1.33         
+    eps1 = epsilon1(l,a)
+    eps2 = epsilon2(l,a)
+    const1  = 1/3 * 4/3 * np.pi * 1/c
+    const2 = np.log10(np.e) * np.power(10.,7) * np.power(1/10,9)
+    a1 = 23 # Major axis
+    a2 = 20  # Minor axis
+    ecc = np.sqrt( 1 - (a2/a1)**2 )
+    L1  = (1-ecc**2)/ecc**2 * ( 1/(2*ecc) * np.log((1+ecc)/(1-ecc)) - 1)
+    L2  = (1-L1)/2
+    summation = eps2/L1**2 / ( ( eps1 + epsm * (1-L1)/L1)**2 + eps2**2)   +  2 * eps2/L2**2 / ( ( eps1 + epsm * (1-L2)/L2)**2 + eps2**2)
+    sigma = const1 * const2 * b * omega * np.power(epsm,3/2) * np.power(a,3) * summation
+    return sigma
+
+R_list = np.linspace(3, 20, num=200)
+rho_list = np.linspace(1.,2., num=100)
+x = l
+y = absorbance
+error = 1/y
+chi_list = [] 
+a_list   = []
+b_list   = []
+
+for i in range(len(R_list)):
+    for j in range(len(rho_list)):
+        chisq = np.sum( np.power( y - cross_section_rho(x,R_list[i],rho_list[j],bool_lim=True), 2)  /(np.power(error,2)) )
+        
+        chi_list.append(chisq)
+        a_list.append(R_list[i])
+        b_list.append(rho_list[j])
+
+min_chi       =  min(chi_list)
+index_min_chi = np.argmin(chi_list)
+a             = a_list[index_min_chi]
+b             = b_list[index_min_chi]
+
+print('min chi_square:', min_chi)
+print('index min chi_square index:', index_min_chi)
+print('a=',a)
+print('b=',b)
