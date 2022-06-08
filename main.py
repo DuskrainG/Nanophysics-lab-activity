@@ -19,7 +19,7 @@ f_guess = 2*10**-6
 epsilonm_fit = epsilonm_guess
 rho_fit = rho_guess
 R_fit = R_guess
-e_guess = 0.001 # to get from ImageJ
+e_guess = 0.217 # from ImageJ
 
 bulk_data = pd.read_csv("bulk gold dieletric functions.txt", sep="\t", header=None)
 bulk_data.columns = ["lambda", "epsilon1", "epsilon2"]
@@ -225,8 +225,8 @@ with open("outputfile.txt", "a") as outfile:
 
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
-plt.plot(l, Absorbance_fitted, color="blue", label="Fit as a function of R, $\epsilon_{m}$, ρ ")
-plt.title("Absorbance (R, $\epsilon_{m}$, ρ ) vs $\lambda$ ", fontsize=fs+5)
+plt.plot(l, Absorbance_fitted, color="blue", label="Fit as a function of R, $\epsilon_{m}$ and ρ ")
+plt.title("Absorbance: (R, $\epsilon_{m}$, ρ ) initial fit", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -283,8 +283,10 @@ with open("outputfile.txt", "a") as outfile:
     
 
 # using f as a parameter
-par_fit_f_epsilonmfix, par_cov_f_epsilonmfix = curve_fit(Absorbance_f_epsilonmfix, l_r, absorbance_r, p0=(R_guess, f_guess))
-Absorbance_fitted_f_epsilonmfix = Absorbance_f_epsilonmfix(l, R=par_fit_f_epsilonmfix[0], f=par_fit_f_epsilonmfix[1])
+par_fit_f_epsilonmfix, par_cov_f_epsilonmfix = curve_fit(Absorbance_f_epsilonmfix,
+            l_r, absorbance_r, p0=(R_guess, f_guess))
+Absorbance_fitted_f_epsilonmfix = Absorbance_f_epsilonmfix(l, R=par_fit_f_epsilonmfix[0],
+            f=par_fit_f_epsilonmfix[1])
 
 with open("outputfile.txt", "a") as outfile:
     multiwrite(outfile, "Fit restricted to 470nm-570nm: R, f")
@@ -361,8 +363,8 @@ with open("outputfile.txt", "a") as outfile:
 
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
-plt.plot(l, Absorbance_fitted_epsilonmfix, color="blue", label="Fit as a function of R, ρ ")
-plt.title("Absorbance vs $\lambda$: (R, ρ) fit fixing $\epsilon_{m}$ = 2.3", fontsize=fs+5)
+plt.plot(l, Absorbance_fitted_epsilonmfix, color="blue", label="Fit as a function of R and ρ ")
+plt.title("Absorbance: (R, ρ) fit fixing $\epsilon_{m}$ = 2.109", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -372,8 +374,8 @@ plt.tight_layout()
 
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
-plt.plot(l, Absorbance_fitted_rhofix, color="blue", label="Fit as a function of R, $\epsilon_{m}$ ")
-plt.title("Absorbance vs $\lambda$: (R, $\epsilon_{m}$) fit fixing ρ = 1.1*$10^{-8} \ nm^{-3}$", fontsize=fs+5)
+plt.plot(l, Absorbance_fitted_rhofix, color="blue", label="Fit as a function of R and $\epsilon_{m}$ ")
+plt.title("Absorbance: (R, $\epsilon_{m}$) fit fixing ρ = 1.10*$10^{-8} \ nm^{-3}$", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -383,8 +385,8 @@ plt.tight_layout()
 
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
-plt.plot(l, Absorbance_fitted_epsilonmfixfit, color="blue", label="Fit as a function of R, ρ ")
-plt.title("Absorbance vs $\lambda$: (R, ρ) fit fixing $\epsilon_{m}$ = 2.1", fontsize=fs+5)
+plt.plot(l, Absorbance_fitted_epsilonmfixfit, color="blue", label="Fit as a function of R and ρ ")
+plt.title("Absorbance: (R, ρ) fit fixing $\epsilon_{m}$ = 2.136", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -394,8 +396,8 @@ plt.tight_layout()
 
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
-plt.plot(l, Absorbance_fitted_f_epsilonmfix, color="blue", label="Fit as a function of R, f ")
-plt.title("Absorbance vs $\lambda$: (R, f) fit fixing $\epsilon_{m}$ = 2.1", fontsize=fs+5)
+plt.plot(l, Absorbance_fitted_f_epsilonmfix, color="blue", label="Fit as a function of R and f ")
+plt.title("Absorbance: (R, f) fit fixing $\epsilon_{m}$ = 2.136", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -408,7 +410,7 @@ f_fit = rho_fit * 4/3 * np.pi * R_fit**3
 
 bounds_ = ([0, 1, 1*10**(-7), 0], [np.inf, np.inf, 1*10**(-5), 1])
 par_fit_Gans_, par_cov_Gans_ = curve_fit(Gans_absorbance_prolate,
-    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit, 1/3), bounds = bounds_, maxfev=5000)
+    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit, Gans_prolate(e_guess)), bounds = bounds_, maxfev=5000)
 Absorbance_fitted_Gans_ = Gans_absorbance_prolate(l,
     R=par_fit_Gans_[0], epsilonm=par_fit_Gans_[1], f=par_fit_Gans_[2], L1=par_fit_Gans_[3])
 
@@ -424,7 +426,7 @@ with open("outputfile.txt", "a") as outfile:
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
 plt.plot(l, Absorbance_fitted_Gans_, color="blue", label="Gans theory fit")
-plt.title("Absorbance vs $\lambda$: Gans theory", fontsize=fs+5)
+plt.title("Absorbance fit: Gans theory", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -486,8 +488,6 @@ with open("outputfile.txt", "a") as outfile:
 
 #%% GANS THEORY: using rho
 
-# Gans_absorbance_prolate_rho(l, R, epsilonm, rho, L1)
-
 bounds_ = ([0, 1, 1*10**(-10), 0], [np.inf, np.inf, 1*10**(-6), 1])
 par_fit_Gans_rho, par_cov_Gans_rho = curve_fit(Gans_absorbance_prolate_rho,
     l_r, absorbance_r, p0=(R_fit, epsilonm_fit, rho_fit, 1/3), bounds = bounds_, maxfev=5000)
@@ -506,7 +506,7 @@ with open("outputfile.txt", "a") as outfile:
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
 plt.plot(l, Absorbance_fitted_Gans_rho, color="blue", label="Gans theory fit")
-plt.title("Absorbance vs $\lambda$: Gans theory", fontsize=fs+5)
+plt.title("Absorbance fit: Gans theory", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -534,7 +534,7 @@ with open("outputfile.txt", "a") as outfile:
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
 plt.plot(l, Absorbance_fitted_Gans_rho2, color="blue", label="Gans theory fit")
-plt.title("Absorbance vs $\lambda$: Gans theory", fontsize=fs+5)
+plt.title("Absorbance fit: Gans theory", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -559,6 +559,7 @@ R_Gans = R_domain_Gans[argmin_Gans[0]]
 epsilonm_Gans = epsilonm_domain_Gans[argmin_Gans[1]]
 f_Gans = f_domain_Gans[argmin_Gans[2]]
 L1_Gans = L1_domain_Gans[argmin_Gans[3]]
+'''
 
 # Attempts at fixing some of the variables; does not help
 # The problem is that the curve is very well fitted by bulk values for the dielectric function
@@ -583,7 +584,7 @@ with open("outputfile.txt", "a") as outfile:
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
 plt.plot(l, Absorbance_fitted_Gans, color="blue", label="Gans theory fit")
-plt.title("Absorbance vs $\lambda$: Gans theory, e fixed", fontsize=fs+5)
+plt.title("Absorbance: Gans theory, e fixed", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
@@ -609,14 +610,13 @@ with open("outputfile.txt", "a") as outfile:
 plt.figure(figsize=(10, 6), dpi=100)
 plt.plot(l, absorbance, color="green", label="Experimental data")
 plt.plot(l, Absorbance_fitted_Gans_f, color="blue", label="Gans theory fit")
-plt.title("Absorbance vs $\lambda$: Gans theory, f fixed", fontsize=fs+5)
+plt.title("Absorbance: Gans theory, f fixed", fontsize=fs+5)
 plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
 plt.xticks(fontsize=fs)
 plt.ylabel("Absorbance", fontdict={"fontsize": fs})
 plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
-'''
 
 #%% GANS THEORY
 
@@ -628,9 +628,10 @@ def cross_section_rho(x,a,b,bool_lim=False):  # a = R, b=rho
     eps2 = epsilon2(l,a)
     const1  = 1/3 * 4/3 * np.pi * 1/c
     const2 = np.log10(np.e) * z
-    a1 = 23 # Major axis
-    a2 = 20  # Minor axis
-    ecc = np.sqrt( 1 - (a2/a1)**2 )
+    # a1 = 23 # Major axis
+    # a2 = 20  # Minor axis
+    # ecc = np.sqrt( 1 - (a2/a1)**2 )
+    ecc = 0.217
     L1  = (1-ecc**2)/ecc**2 * ( 1/(2*ecc) * np.log((1+ecc)/(1-ecc)) - 1)
     L2  = (1-L1)/2
     summation = eps2/L1**2 / ( ( eps1 + epsm * (1-L1)/L1)**2 + eps2**2)   +  2 * eps2/L2**2 / ( ( eps1 + epsm * (1-L2)/L2)**2 + eps2**2)
