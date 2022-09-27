@@ -101,17 +101,34 @@ def Chi_R_epsilonm(R, epsilonm): # only accounts for the chi squared in the sele
 def Gans_prolate(e): # prolate dipolarization factor
     return (1-e**2)/e**2 * (1/(2*e)*np.log((1+e)/(1-e))-1)
 
+def Gans_oblate(e): # oblate dipolarization factor
+    return 1/e**2 * (1-np.sqrt(1-e**2)/e*np.arcsin(e))
+
 def Gans_cs_prolate(l, R, epsilonm, L1): # cross section [nm**2]
-    c1 = epsilon2(l, R)/(L1**2* (epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2)
+    c1 = epsilon2(l, R)/(L1**2* ((epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2))
     L2 = (1-L1)/2
-    c2 = epsilon2(l, R)/(L2**2*(epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2)
+    c2 = epsilon2(l, R)/(L2**2*((epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2))
     return 1/3*omega(l)/c*epsilonm**(3/2)*4/3*np.pi*R**3*(c1 + 2*c2)
 
 def Gans_ec_prolate_f(l, R, epsilonm, f, L1): # extinction coefficient [nm**-1]
-    c1 = epsilon2(l, R)/(L1**2* (epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2)
+    c1 = epsilon2(l, R)/(L1**2* ((epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2))
     L2 = (1-L1)/2
-    c2 = epsilon2(l, R)/(L2**2*(epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2)
+    c2 = epsilon2(l, R)/(L2**2*((epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2))
     return 1/3*omega(l)/c*epsilonm**(3/2)*f*(c1 + 2*c2)
+
+def Gans_ec_prolate_f_e(l, R, epsilonm, f, e): # extinction coefficient [nm**-1]
+    L1 = Gans_prolate(e)
+    c1 = epsilon2(l, R)/(L1**2* ((epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2))
+    L2 = (1-L1)/2
+    c2 = epsilon2(l, R)/(L2**2*((epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2))
+    return 1/3*omega(l)/c*epsilonm**(3/2)*f*(c1 + 2*c2)
+
+def Gans_ec_oblate_f_e(l, R, epsilonm, f, e): # extinction coefficient [nm**-1]
+    L1 = Gans_oblate(e)
+    c1 = epsilon2(l, R)/(L1**2* ((epsilon1(l, R)+epsilonm*((1-L1)/L1))**2+epsilon2(l, R)**2))
+    L2 = (1-L1)/2
+    c2 = epsilon2(l, R)/(L2**2*((epsilon1(l, R)+epsilonm*((1-L2)/L2))**2+epsilon2(l, R)**2))
+    return 1/3*omega(l)/c*epsilonm**(3/2)*f*(2*c1 + c2)
 
 def Gans_ec_prolate_f_L1_fixed(l, R, epsilonm, f):
     L1 = Gans_prolate(e_guess)
@@ -119,6 +136,14 @@ def Gans_ec_prolate_f_L1_fixed(l, R, epsilonm, f):
 
 def Gans_absorbance_prolate(l, R, epsilonm, f, L1):
     ec = Gans_ec_prolate_f(l, R, epsilonm, f, L1)
+    return np.log10(np.e)*z*ec
+
+def Gans_absorbance_prolate_e(l, R, epsilonm, f, e):
+    ec = Gans_ec_prolate_f_e(l, R, epsilonm, f, e)
+    return np.log10(np.e)*z*ec
+
+def Gans_absorbance_oblate_e(l, R, epsilonm, f, e):
+    ec = Gans_ec_oblate_f_e(l, R, epsilonm, f, e)
     return np.log10(np.e)*z*ec
 
 def Gans_absorbance_prolate_rho(l, R, epsilonm, rho, L1): 
@@ -405,7 +430,7 @@ plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
 
-#%% GANS THEORY
+#%% GANS THEORY: prolate
 f_fit = rho_fit * 4/3 * np.pi * R_fit**3
 
 bounds_ = ([0, 1, 1*10**(-7), 0], [np.inf, np.inf, 1*10**(-5), 1])
@@ -415,7 +440,7 @@ Absorbance_fitted_Gans_ = Gans_absorbance_prolate(l,
     R=par_fit_Gans_[0], epsilonm=par_fit_Gans_[1], f=par_fit_Gans_[2], L1=par_fit_Gans_[3])
 
 with open("outputfile.txt", "a") as outfile:
-    multiwrite(outfile, "Gans fit restricted to 470nm-570nm:")
+    multiwrite(outfile, "Gans fit restricted to 470nm-570nm: using L1")
     multiwrite(outfile, "R = " + str(par_fit_Gans_[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans_[0,0])) + " nm")
     multiwrite(outfile, "epsilonm = " + str(par_fit_Gans_[1]) + "with error " + str(np.sqrt(par_cov_Gans_[1,1])))
     multiwrite(outfile, "f = " + str(par_fit_Gans_[2]) + "with error " + str(np.sqrt(par_cov_Gans_[2,2])))
@@ -434,8 +459,66 @@ plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
 
-# Manual fit by definition and optimization of a proper chi squared
+# using e instead of L1
+f_fit = rho_fit * 4/3 * np.pi * R_fit**3
 
+bounds_e = ([0.01, 1, 1*10**(-7), 0.01], [np.inf, np.inf, 1*10**(-5), 1])
+par_fit_Gans_e, par_cov_Gans_e = curve_fit(Gans_absorbance_prolate_e,
+    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit, e_guess), bounds = bounds_, maxfev=5000)
+Absorbance_fitted_Gans_e = Gans_absorbance_prolate_e(l,
+    R=par_fit_Gans_e[0], epsilonm=par_fit_Gans_e[1], f=par_fit_Gans_e[2], e=par_fit_Gans_e[3])
+
+with open("outputfile.txt", "a") as outfile:
+    multiwrite(outfile, "Gans fit restricted to 470nm-570nm: prolate")
+    multiwrite(outfile, "R = " + str(par_fit_Gans_e[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans_e[0,0])) + " nm")
+    multiwrite(outfile, "epsilonm = " + str(par_fit_Gans_e[1]) + "with error " + str(np.sqrt(par_cov_Gans_e[1,1])))
+    multiwrite(outfile, "f = " + str(par_fit_Gans_e[2]) + "with error " + str(np.sqrt(par_cov_Gans_e[2,2])))
+    multiwrite(outfile, "e = " + str(par_fit_Gans_e[3]) + "with error " + str(np.sqrt(par_cov_Gans_e[3,3])))
+    multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_Gans_e)))
+    multiwrite(outfile, "")
+    
+plt.figure(figsize=(10, 6), dpi=100)
+plt.plot(l, absorbance, color="green", label="Experimental data")
+plt.plot(l, Absorbance_fitted_Gans_e, color="blue", label="Gans theory fit")
+plt.title("Absorbance fit: Gans theory for prolate NPs", fontsize=fs+5)
+plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
+plt.xticks(fontsize=fs)
+plt.ylabel("Absorbance", fontdict={"fontsize": fs})
+plt.yticks(fontsize=fs)
+plt.legend(fontsize=fs//4*3)
+plt.tight_layout()
+
+#%% GANS THEORY: oblate
+
+f_fit = rho_fit * 4/3 * np.pi * R_fit**3
+
+bounds_eo = ([0.01, 1, 1*10**(-7), 0.01], [np.inf, np.inf, 1*10**(-5), 1])
+par_fit_Gans_eo, par_cov_Gans_eo = curve_fit(Gans_absorbance_oblate_e,
+    l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit, e_guess), bounds = bounds_, maxfev=5000)
+Absorbance_fitted_Gans_eo = Gans_absorbance_oblate_e(l,
+    R=par_fit_Gans_eo[0], epsilonm=par_fit_Gans_eo[1], f=par_fit_Gans_eo[2], e=par_fit_Gans_eo[3])
+
+with open("outputfile.txt", "a") as outfile:
+    multiwrite(outfile, "Gans fit restricted to 470nm-570nm: oblate")
+    multiwrite(outfile, "R = " + str(par_fit_Gans_eo[0]) + " nm, with error " + str(np.sqrt(par_cov_Gans_eo[0,0])) + " nm")
+    multiwrite(outfile, "epsilonm = " + str(par_fit_Gans_eo[1]) + "with error " + str(np.sqrt(par_cov_Gans_eo[1,1])))
+    multiwrite(outfile, "f = " + str(par_fit_Gans_eo[2]) + "with error " + str(np.sqrt(par_cov_Gans_eo[2,2])))
+    multiwrite(outfile, "e = " + str(par_fit_Gans_eo[3]) + "with error " + str(np.sqrt(par_cov_Gans_eo[3,3])))
+    multiwrite(outfile, "Chi-squared = " + str(Chi(absorbance, Absorbance_fitted_Gans_eo)))
+    multiwrite(outfile, "")
+    
+plt.figure(figsize=(10, 6), dpi=100)
+plt.plot(l, absorbance, color="green", label="Experimental data")
+plt.plot(l, Absorbance_fitted_Gans_eo, color="blue", label="Gans theory fit")
+plt.title("Absorbance fit: Gans theory for oblate NPs", fontsize=fs+5)
+plt.xlabel(r"$\lambda$ (nm)", fontdict={"fontsize": fs})
+plt.xticks(fontsize=fs)
+plt.ylabel("Absorbance", fontdict={"fontsize": fs})
+plt.yticks(fontsize=fs)
+plt.legend(fontsize=fs//4*3)
+plt.tight_layout()
+'''
+# Manual fit by definition and optimization of a proper chi squared
 R_domain_Gans = np.arange(2, 15, 0.2)
 epsilonm_domain_Gans = np.arange(1.4, 3, 0.05)
 f_domain_Gans = np.arange(1*10**-7, 5*10**-6, 5*10**-7)
@@ -485,7 +568,7 @@ with open("outputfile.txt", "a") as outfile:
     multiwrite(outfile, "R = " + str(R_Gans2) + " nm")
     multiwrite(outfile, "f = " + str(f_Gans2))
     multiwrite(outfile, "")
-
+'''
 #%% GANS THEORY: using rho
 
 bounds_ = ([0, 1, 1*10**(-10), 0], [np.inf, np.inf, 1*10**(-6), 1])
@@ -514,9 +597,7 @@ plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
 
-# epsilonm is garbage; all errors are huge
-# Repeat the fit fixing epsilonm
-
+# fixing epsilonm: we obtain a Mie-like result
 bounds_2 = ([0, 1*10**(-10), 0], [np.inf, 1*10**(-6), 1])
 par_fit_Gans_rho2, par_cov_Gans_rho2 = curve_fit(Gans_absorbance_prolate_rho_epsilonmfix,
     l_r, absorbance_r, p0=(R_fit, rho_fit, 1/3), bounds = bounds_2, maxfev=5000)
@@ -560,13 +641,7 @@ epsilonm_Gans = epsilonm_domain_Gans[argmin_Gans[1]]
 f_Gans = f_domain_Gans[argmin_Gans[2]]
 L1_Gans = L1_domain_Gans[argmin_Gans[3]]
 '''
-
-# Attempts at fixing some of the variables; does not help
-# The problem is that the curve is very well fitted by bulk values for the dielectric function
-# Thus we can not infer the value of R, which is the one we're most interested in
-# The only saving grace is that the ellipticity values are extremely small
-# So we might say that Gans theory is not necessary and keep using our previous results
-
+# fixing e
 bounds = ([0, 1, 1*10**(-7)], [20, 3, 1*10**(-5)])
 par_fit_Gans, par_cov_Gans = curve_fit(Gans_absorbance_prolate_L1_fixed,
     l_r, absorbance_r, p0=(R_fit, epsilonm_fit, f_fit), bounds = bounds, maxfev=5000)
@@ -592,7 +667,7 @@ plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
 
-
+#fixing f
 bounds_f = ([0, 1, 0], [20, 3, 1])
 par_fit_Gans_f, par_cov_Gans_f = curve_fit(Gans_absorbance_prolate_f_fixed,
     l_r, absorbance_r, p0=(R_fit, epsilonm_fit, e_guess), bounds = bounds_f, maxfev=5000)
@@ -617,61 +692,3 @@ plt.ylabel("Absorbance", fontdict={"fontsize": fs})
 plt.yticks(fontsize=fs)
 plt.legend(fontsize=fs//4*3)
 plt.tight_layout()
-
-#%% GANS THEORY
-
-
-def cross_section_rho(x,a,b,bool_lim=False):  # a = R, b=rho
-    omega = 2 * np.pi * c / x
-    epsm = 1.33**2#1.43*1.43 #1.33*1.33         
-    eps1 = epsilon1(l,a)
-    eps2 = epsilon2(l,a)
-    const1  = 1/3 * 4/3 * np.pi * 1/c
-    const2 = np.log10(np.e) * z
-    # a1 = 23 # Major axis
-    # a2 = 20  # Minor axis
-    # ecc = np.sqrt( 1 - (a2/a1)**2 )
-    ecc = 0.217
-    L1  = (1-ecc**2)/ecc**2 * ( 1/(2*ecc) * np.log((1+ecc)/(1-ecc)) - 1)
-    L2  = (1-L1)/2
-    summation = eps2/L1**2 / ( ( eps1 + epsm * (1-L1)/L1)**2 + eps2**2)   +  2 * eps2/L2**2 / ( ( eps1 + epsm * (1-L2)/L2)**2 + eps2**2)
-    sigma = const1 * const2 * b * omega * np.power(epsm,3/2) * np.power(a,3) * summation
-    return sigma
-
-R_list = np.linspace(3, 20, num=200)
-rho_list = np.linspace(1 * 10**-9, 5*10**-8, num=200)
-x = l
-y = absorbance
-error = 1/y
-chi_list = np.zeros((len(R_list), len(rho_list))) 
-
-for i in range(len(R_list)):
-    for j in range(len(rho_list)):
-        chisq = np.sum( np.power( y - cross_section_rho(x,R_list[i],rho_list[j],bool_lim=True), 2)  /(np.power(error,2)) )
-        chi_list[i, j] = chisq
-        
-argmin = np.argwhere(chi_list == chi_list.min())[0]
-R_min = R_list[argmin[0]]
-rho_min = rho_list[argmin[1]]
-
-print('R=', R_min)
-print('rho=', rho_min)
-
-fig, ax = plt.subplots(figsize=(10, 6), dpi=100)
-contour_plot = plt.contourf(R_list, rho_list, chi_list.transpose(),
-                            np.logspace(np.log10(chi_list.min()), np.log10(chi_list.max()), 30),
-                            locator=ticker.LogLocator(), cmap="plasma")
-colbar = plt.colorbar()
-colbar.set_label(label=r"$\chi^2$",size=fs)
-colbar.ax.tick_params(labelsize=fs)
-plt.title(r"$\chi^2$ map of absorbance for Gans theory: (R, f)", fontsize=fs+5)
-plt.xlabel("R (nm)", fontdict={"fontsize": fs})
-plt.xticks(fontsize=fs)
-plt.ylabel("rho", fontdict={"fontsize": fs})
-plt.yticks(fontsize=fs)
-t = ax.yaxis.get_offset_text()
-t.set_size(fs)
-plt.tight_layout()
-
-# In this section we used rho instead of f
-# We basically have the same problem, but reversed: R goes as low as it can
